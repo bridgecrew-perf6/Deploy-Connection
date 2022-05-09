@@ -22,6 +22,20 @@
         "description": "description"
       },
       "defaultValue": "Office 365"
+    },
+    "sharepoint_Connection_Name": {
+        "type": "string",
+        "metadata": {
+            "description": "description"
+        },
+        "defaultValue": "sharepointonline"
+    },
+    "sharepoint_Connection_DisplayName": {
+        "type": "string",
+        "metadata": {
+            "description": "description"
+        },
+        "defaultValue": "SharePoint Online"
     }
   },
   "functions": [],
@@ -71,7 +85,7 @@
             },
             "Send_an_email_(V2)": {
                 "runAfter": {
-                    "Random_number": [
+                    "Update_item": [
                         "Succeeded"
                     ]
                 },
@@ -90,6 +104,26 @@
                     "method": "post",
                     "path": "/v2/Mail"
                 }
+            },
+            "Update_item": {
+                "runAfter": {
+                    "Random_number": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection",
+                "inputs": {
+                    "body": {
+                        "Value": "@outputs('Random_number')"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                        }
+                    },
+                    "method": "patch",
+                    "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('Site Url')))}/tables/@{encodeURIComponent(encodeURIComponent(parameters('Library')))}/items/@{encodeURIComponent('1')}"
+                }
             }
         },
         "outputs": {}
@@ -101,13 +135,19 @@
                       "connectionId": "[resourceId('Microsoft.Web/connections', parameters('office365_1_Connection_Name'))]",
                       "connectionName": "[parameters('office365_1_Connection_Name')]",
                       "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/', 'office365')]"
-                  }
+                  },
+                  "sharepointonline": {
+                        "connectionId": "[resourceId('Microsoft.Web/connections', parameters('sharepoint_Connection_Name'))]",
+                        "connectionName": "sharepointonline",
+                        "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/', 'sharepointonline')]"
+                    }
               }
           }
         }
       },
       "dependsOn": [
-          "[resourceId('Microsoft.Web/connections', parameters('office365_1_Connection_Name'))]"
+          "[resourceId('Microsoft.Web/connections', parameters('office365_1_Connection_Name'))]",
+          "[resourceId('Microsoft.Web/connections', parameters('sharepoint_Connection_Name'))]"
       ]
     },
     {
@@ -124,6 +164,22 @@
           },
           // Template parameter reference for connection display name
           "displayName": "[parameters('office365_1_Connection_DisplayName')]"
+        }
+    },
+    {
+        "name": "[parameters('sharepoint_Connection_Name')]",
+        "type": "Microsoft.Web/connections",
+        "apiVersion": "2016-06-01",
+        "location": "[resourceGroup().location]",
+        "tags": {},
+        "properties": {
+            "displayName": "[parameters('sharepoint_Connection_DisplayName')]",
+            "parameterValues": {},
+            "customParameterValues": {},
+            "nonSecretParameterValues": {},
+            "api": {
+                "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/', parameters('sharepoint_Connection_Name'))]"
+            }
         }
     }
   ],
