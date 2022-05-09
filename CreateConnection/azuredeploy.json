@@ -1,0 +1,131 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "description"
+      },
+      "defaultValue": "Deploy-Connection-App"
+    },
+    "office365_1_Connection_Name": {
+      "type": "string",
+      "metadata": {
+        "description": "description"
+      },
+      "defaultValue": "office365"
+    },
+    "office365_1_Connection_DisplayName": {
+      "type": "string",
+      "metadata": {
+        "description": "description"
+      },
+      "defaultValue": "Office 365"
+    }
+  },
+  "functions": [],
+  "variables": {},
+  "resources": [
+    {
+      "name": "[parameters('logicAppName')]",
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2017-07-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/schemas/2016-06-01/Microsoft.Logic.json",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            },
+            "Library": {
+                "defaultValue": "Documents",
+                "type": "String"
+            },
+            "Site Url": {
+                "defaultValue": "https://vgssoft.sharepoint.com/sites/TranslationServicesLogicApp",
+                "type": "String"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "recurrence": {
+                    "frequency": "Month",
+                    "interval": 3
+                },
+                "evaluatedRecurrence": {
+                    "frequency": "Month",
+                    "interval": 3
+                },
+                "type": "Recurrence"
+            }
+        },
+        "actions": {
+            "Random_number": {
+                "runAfter": {},
+                "type": "Compose",
+                "inputs": "@rand(10, 100)"
+            },
+            "Send_an_email_(V2)": {
+                "runAfter": {
+                    "Random_number": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection",
+                "inputs": {
+                    "body": {
+                        "Body": "<p>Random number value updated in SharePoint.</p>",
+                        "Subject": "Random number updated",
+                        "To": "vishalshitole@vgssoft.onmicrosoft.com"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['office365']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/v2/Mail"
+                }
+            }
+        },
+        "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+              "value": {
+                  "office365": {
+                      "connectionId": "[resourceId('Microsoft.Web/connections', parameters('office365_1_Connection_Name'))]",
+                      "connectionName": "[parameters('office365_1_Connection_Name')]",
+                      "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/', 'office365')]"
+                  }
+              }
+          }
+        }
+      },
+      "dependsOn": [
+          "[resourceId('Microsoft.Web/connections', parameters('office365_1_Connection_Name'))]"
+      ]
+    },
+    {
+        "type": "Microsoft.Web/connections",
+        "apiVersion": "2016-06-01",
+        // Template parameter reference for connection name
+        "name": "[parameters('office365_1_Connection_Name')]",
+        // Template parameter reference for connection resource location. Must match logic app location.
+        "location": "[resourceGroup().location]",
+        "properties": {
+          "api": {
+              // Connector ID
+              "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/', 'office365')]"
+          },
+          // Template parameter reference for connection display name
+          "displayName": "[parameters('office365_1_Connection_DisplayName')]"
+        }
+    }
+  ],
+  "outputs": {}
+}
